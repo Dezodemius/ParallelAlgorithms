@@ -1,0 +1,12 @@
+
+.idea/
+
+cmake-build-debug/
+
+*.out
+
+main
+
+bin/
+
+tables.txt
