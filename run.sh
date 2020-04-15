@@ -1,5 +1,7 @@
-echo "COMPILING"
 mkdir bin
+
+echo "COMPILING"
+
 if ! gcc main.c -o bin/main.out
 then
   exit
