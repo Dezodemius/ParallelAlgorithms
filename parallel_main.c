@@ -10,48 +10,60 @@
 #include <limits.h>
 
 float dot(int n, float* partA, float* partB);
+float dot_optimized(int n, float* partA, float* partB);
 float* generateArray(int n);
 
 // Точка входа в программу.
 void main(int argc, char** argv)
 {
-  int np, IDp, N = 1e3;
-  float sum = 0.0;
-  
+  int processesNumber, processId, N = 1e8;
+  float sum = 0.0, tempSum = 0.0;
   float* a = generateArray(N);
   float* b = generateArray(N);
-  
+  MPI_Status status;
+
   MPI_Init(&argc, &argv);
+  MPI_Comm_size(MPI_COMM_WORLD, &processesNumber);
+  MPI_Comm_rank(MPI_COMM_WORLD, &processId);
   
-  // Получим количество процессов.
-  MPI_Comm_size(MPI_COMM_WORLD, &np);
-  // Получить номер
-  MPI_Comm_rank(MPI_COMM_WORLD, &IDp);
-  
-  // Насколько сдвинуть начало отсчёта
-  int offset = (N / np) * IDp;
-  
+  int n = N / processesNumber;
+  int offset = n * processId;
   double t0 = MPI_Wtime();
-  float tempSum = dot(N / np, a + offset, b + offset);
-  //MPI_Reduce(&tempSum, &sum, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
-  MPI_Allreduce(&tempSum, &sum, 1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD);
-  double t1 = MPI_Wtime();
+  float *buff_a = (float*)malloc(n*sizeof(float));
+  float *buff_b = (float*)malloc(n*sizeof(float));
+      
+  MPI_Sendrecv(a + offset, n, MPI_FLOAT, (processId + 1) % processesNumber, 1,
+    buff_a, n, MPI_FLOAT, (processId + processesNumber - 1) % processesNumber, 1, MPI_COMM_WORLD, &status);
+
+  MPI_Sendrecv(b + offset, n, MPI_FLOAT, (processId + 1) % processesNumber, 1,       
+    buff_b, n, MPI_FLOAT, (processId + processesNumber - 1) % processesNumber, 1, MPI_COMM_WORLD, &status);
   
-  if (IDp == 0){
-    printf("%.8f\n", (t1 - t0));
-  }
-  
+  if (processId > 0){
+    tempSum = dot_optimized(n, buff_a, buff_b);
+    MPI_Send(&tempSum, 1, MPI_FLOAT, 0, 2, MPI_COMM_WORLD);
+  } else {
+    sum = dot_optimized(n, buff_a, buff_b);
+    int i;
+    for (i = 1; i < processesNumber; i++){
+      MPI_Recv(&tempSum, n, MPI_FLOAT, i, 2, MPI_COMM_WORLD, &status);
+      sum += tempSum;  
+    }
+    
+    printf("%f\n", sum);
+  }  
+
   MPI_Finalize();
 }
 
 // Скалярное произведение
-float dot(int n, float * partA, float * partB)
+float dot(int n, float partA[], float partB[])
 {
   int i;
   float sum = 0.0;
-  
+
   for(i = 0; i < n; i++)
     sum += partA[i] * partB[i];
+  
   
   return sum;
 }
@@ -76,7 +88,7 @@ float * generateArray(int n)
   float *array = (float*)malloc(n*sizeof(float));
   
   for(i = 0; i < n; i++)
-    array[i] = i / 100.0;
+    array[i] = 1.0;
   
   return array;
 }
