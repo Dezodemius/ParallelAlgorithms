@@ -9,46 +9,46 @@
 #include <mpi.h>
 #include <limits.h>
 
-float dot(int n, float* partA, float* partB);
-float* generateArray(int n);
+double dot(int n, double* partA, double* partB);
+double* generateArray(int n);
+double dot_optimized(int n, double * partA, double * partB);
 
 // Точка входа в программу.
 void main(int argc, char** argv)
 {
-  int np, IDp, N = 1e3;
-  float sum = 0.0;
+  int np, IDp, N = 1e8;
+  double sum = 0.0;
   
-  float* a = generateArray(N);
-  float* b = generateArray(N);
+  double* a = generateArray(N);
+  double* b = generateArray(N);
   
   MPI_Init(&argc, &argv);
   
-  // Получим количество процессов.
   MPI_Comm_size(MPI_COMM_WORLD, &np);
-  // Получить номер
   MPI_Comm_rank(MPI_COMM_WORLD, &IDp);
-  
-  // Насколько сдвинуть начало отсчёта
   int offset = (N / np) * IDp;
   
   double t0 = MPI_Wtime();
-  float tempSum = dot(N / np, a + offset, b + offset);
-  //MPI_Reduce(&tempSum, &sum, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+  double tempSum = dot_optimized(N / np, a + offset, b + offset);
   MPI_Allreduce(&tempSum, &sum, 1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD);
   double t1 = MPI_Wtime();
   
   if (IDp == 0){
-    printf("%.8f\n", (t1 - t0));
+    double t_1 = 0.176161;
+    double t_p = t1 - t0;
+    double s = t_1 / t_p;
+    double e = s / np * 100;
+    printf("& %.4f & %.4f & %.2f \\%%\\\\ \\hline\n", t_p, s, e);
   }
   
   MPI_Finalize();
 }
 
 // Скалярное произведение
-float dot(int n, float * partA, float * partB)
+double dot(int n, double * partA, double * partB)
 {
   int i;
-  float sum = 0.0;
+  double sum = 0.0;
   
   for(i = 0; i < n; i++)
     sum += partA[i] * partB[i];
@@ -57,10 +57,10 @@ float dot(int n, float * partA, float * partB)
 }
 
 // Скалярное произведение
-float dot_optimized(int n, float * partA, float * partB)
+double dot_optimized(int n, double * partA, double * partB)
 {
   int i;
-  float sum = 0.0;
+  double sum = 0.0;
   
   for(i = 0; i < n; i+=4)
     sum += partA[i] * partB[i] + partA[i + 1] * partB[i + 1] +
@@ -70,10 +70,10 @@ float dot_optimized(int n, float * partA, float * partB)
 }
 
 // Сгенерировать массив.
-float * generateArray(int n)
+double * generateArray(int n)
 {
   int i;
-  float *array = (float*)malloc(n*sizeof(float));
+  double *array = (double*)malloc(n*sizeof(double));
   
   for(i = 0; i < n; i++)
     array[i] = i / 100.0;

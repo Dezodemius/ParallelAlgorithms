@@ -11,34 +11,34 @@
 
 float dot(int n, float* partA, float* partB);
 float* generateArray(int n);
+float dot_optimized(int n, float * partA, float * partB);
 
 // Точка входа в программу.
 void main(int argc, char** argv)
 {
   int np, IDp, N = 1e3;
-  float sum = 0.0;
+  double sum = 0.0;
   
   float* a = generateArray(N);
   float* b = generateArray(N);
   
   MPI_Init(&argc, &argv);
   
-  // Получим количество процессов.
   MPI_Comm_size(MPI_COMM_WORLD, &np);
-  // Получить номер
   MPI_Comm_rank(MPI_COMM_WORLD, &IDp);
-  
-  // Насколько сдвинуть начало отсчёта
   int offset = (N / np) * IDp;
   
   double t0 = MPI_Wtime();
-  float tempSum = dot(N / np, a + offset, b + offset);
-  //MPI_Reduce(&tempSum, &sum, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+  double tempSum = dot(N / np, a + offset, b + offset);
   MPI_Allreduce(&tempSum, &sum, 1, MPI_REAL, MPI_SUM, MPI_COMM_WORLD);
   double t1 = MPI_Wtime();
   
   if (IDp == 0){
-    printf("%.8f\n", (t1 - t0));
+    double t_1 = 0.000003;
+    double t_p = t1 - t0;
+    double s = t_1 / t_p;
+    double e = s / np * 100;
+    printf("%d (\\verb\"Allreduce\") & %.8f & %.8f & %.4f \\%% & & & \\%%\\\\ \\hline\n", np, t_p, s, e);
   }
   
   MPI_Finalize();
