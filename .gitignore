@@ -20,3 +20,9 @@ MatrixVectorProd/.vs/MatrixVectorProd/v16/Browse.VC.db
 MatrixVectorProd/.vs/MatrixVectorProd/v16/ipch/AutoPCH/b7d38227a399ba14/MATRIXVECTORPROD.ipch
 MatrixVectorProd/MatrixVectorProd/MatrixVectorProd.vcxproj.user
 MatrixVectorProd/MatrixVectorProd/MatrixVectorProd.vcxproj.filters
+
+MatrixVectorProd/.vs/
+
+MatrixVectorProd/Debug/
+
+MatrixVectorProd/MatrixVectorProd/Debug/
