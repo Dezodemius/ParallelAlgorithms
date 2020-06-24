@@ -58,6 +58,8 @@ real* multiply(real** M, int n, int m, real* V, int k) {
   }
   return resultVector;
 }
+
+// MPI_Allgather
 int main(int argc, char** argv)
 {
   std::stringstream convert(argv[1]);
@@ -82,13 +84,13 @@ int main(int argc, char** argv)
   b = getVector(n);
   A_ = getSymmetricMatrix(n * m);
 
-  MPI_Scatter(A, m, MPI_DOUBLE, A_, m, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Scatter(A, n * m, MPI_DOUBLE, A_, n * m, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   MPI_Barrier(MPI_COMM_WORLD);
 
   start = MPI_Wtime();
   real* x = multiply(A, n, m, b, IDp * m);
   stop = MPI_Wtime();
-  MPI_Allreduce(x, result, n, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allgather(x, m, MPI_DOUBLE, result, m, MPI_DOUBLE, MPI_COMM_WORLD);
 
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -97,7 +99,7 @@ int main(int argc, char** argv)
   if (IDp == 0)
   {
     double t = stop - start;
-    double t0 = 6.55e-05;
+    double t0 = 0.0025865;
     double Sp = t0 / t;
     double Ep = Sp * 100.0 / np;
     std::cout << t << " & " << Sp << " & " << Ep << std::endl;
@@ -111,6 +113,62 @@ int main(int argc, char** argv)
   MPI_Finalize();
   return 0;
 }
+
+//// MPI_Allreduce
+//int main(int argc, char** argv)
+//{
+//  std::stringstream convert(argv[1]);
+//
+//  int n;
+//  if (!(convert >> n))
+//    n = 0;
+//  double start, stop;
+//
+//  real** A, * b, ** A_;
+//  real* result = (real*)malloc(n * sizeof(real));
+//  int IDp, np;
+//  int root = 0;
+//
+//  MPI_Init(&argc, &argv);
+//  MPI_Comm_size(MPI_COMM_WORLD, &np);
+//  MPI_Comm_rank(MPI_COMM_WORLD, &IDp);
+//
+//  double m = n / np;
+//
+//  A = getSymmetricMatrix(n);
+//  b = getVector(n);
+//  A_ = getSymmetricMatrix(n * m);
+//
+//  MPI_Scatter(A, m, MPI_FLOAT, A_, m, MPI_FLOAT, 0, MPI_COMM_WORLD);
+//  MPI_Barrier(MPI_COMM_WORLD);
+//
+//  start = MPI_Wtime();
+//  real* x = multiply(A, n, m, b, IDp * m);
+//  stop = MPI_Wtime();
+//  MPI_Allreduce(x, result, n, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+//
+//  MPI_Barrier(MPI_COMM_WORLD);
+//
+//  free(x);
+//
+//  if (IDp == 0)
+//  {
+//    double t = stop - start;
+//    double t0 = 6.55e-05;
+//    double Sp = t0 / t;
+//    double Ep = Sp * 100.0 / np;
+//    std::cout << t << " & " << Sp << " & " << Ep << std::endl;
+//  }
+//
+//  free(result);
+//  free(b);
+//
+//  free(A);
+//  free(A_);
+//  MPI_Finalize();
+//  return 0;
+//}
+
 // MPI_Reduce
 //int main(int argc, char** argv)
 //{
